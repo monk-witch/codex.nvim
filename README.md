@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.1 — project scaffold.** The public API is not implemented yet and may change before `1.0.0`.
+**0.0.2 — chat selection.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -20,14 +20,54 @@ Codex CLI and NeoVim remain graphically independent:
 
 This is intentionally not an attempt to embed Codex CLI inside NeoVim, nor to have `/ide` discover arbitrary terminals. It is a native NeoVim client for Codex's rich-client protocol.
 
-## Planned first usable release
+## Available now
 
-1. Detect or start a local Codex App Server.
-2. List resumable local chats and select one for the active NeoVim session.
-3. Show the active chat and allow changing or clearing it.
-4. Send a prompt, current-file reference, or visual selection to the selected chat.
-5. Stream agent replies into a NeoVim scratch buffer.
-6. Present Codex command and file-change approvals through NeoVim's native UI.
+`codex.nvim` provides two equivalent commands:
+
+```vim
+:CodexList
+:CodexLS
+```
+
+They use NeoVim's native `vim.ui.select` picker to list non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Choose one and `codex.nvim` retains it for the entire current NeoVim instance:
+
+```lua
+local codex = require("codex")
+
+codex.selected_chat()    -- the selected thread metadata, or nil
+codex.selected_chat_id() -- the selected thread ID, or nil
+codex.clear_selection()
+```
+
+The picker deliberately excludes archived chats and chats from other projects. It does not open, resume, alter, or subscribe to a selected conversation yet.
+
+On first use, the plugin starts the local App Server daemon when necessary, then communicates through `codex app-server proxy`. This is a local subprocess transport only; it does not create or control a terminal window.
+
+### Install for local development
+
+With `lazy.nvim`:
+
+```lua
+{
+  dir = "/path/to/codex.nvim",
+  config = function()
+    require("codex").setup()
+  end,
+}
+```
+
+To manage the daemon yourself, disable automatic startup:
+
+```lua
+require("codex").setup({ auto_start = false })
+```
+
+## Next steps
+
+1. Show the active chat and add an explicit command to clear it.
+2. Send a prompt, current-file reference, or visual selection to the selected chat.
+3. Stream agent replies into a NeoVim scratch buffer.
+4. Present Codex command and file-change approvals through NeoVim's native UI.
 
 ## Requirements
 
