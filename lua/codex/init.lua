@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.12"
+local plugin_version = "0.0.13"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -926,6 +926,36 @@ function M.setup(options)
     bar = false,
     desc = "Send direct input to the active Codex chat",
     nargs = "*",
+  })
+
+  local function create_short_alias(name, callback, command_options)
+    if vim.fn.exists(":" .. name) ~= 0 then
+      notify("Did not create :" .. name .. " because that command is already in use", vim.log.levels.WARN)
+      return
+    end
+    vim.api.nvim_create_user_command(name, callback, command_options)
+  end
+
+  create_short_alias("CoLS", function()
+    M.list()
+  end, {
+    desc = "Short alias for :CodexList",
+  })
+
+  create_short_alias("CoCh", function(command)
+    M.chat(command.args)
+  end, {
+    bar = false,
+    desc = "Short alias for :CodexChat",
+    nargs = "*",
+  })
+
+  create_short_alias("CoSe", function(command)
+    M.send_range(command.line1, command.line2)
+  end, {
+    bar = true,
+    desc = "Short alias for :CodexSend",
+    range = true,
   })
 end
 

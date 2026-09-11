@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.12 — direct chat input alongside quiet line-range sending.** The public API is small and may change before `1.0.0`.
+**0.0.13 — direct chat input with guarded short command aliases.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -29,7 +29,13 @@ This is intentionally not an attempt to embed Codex CLI inside NeoVim, nor to ha
 :CodexLS
 :CodexSend
 :CodexChat
+
+:CoLS
+:CoSe
+:CoCh
 ```
+
+The `Codex…` commands are the stable, descriptive API. `CoLS`, `CoSe`, and `CoCh` are their short aliases for daily terminal use. To avoid overriding another plugin, codex.nvim creates a short alias only when that exact command name is unused.
 
 `CodexList` and its `CodexLS` alias open a keyboard-only list of non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Move the cursor with the arrow keys and press `<Enter>` to select it, or type a line number then press `<Enter>` to select that chat directly. Press `<Esc>` or `q` to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
 
