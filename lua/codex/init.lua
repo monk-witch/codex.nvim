@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.9"
+local plugin_version = "0.0.10"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -646,29 +646,81 @@ local function attach_statusline_to_default()
 end
 
 local function select_thread(threads, callback)
-  local choices = { { "Select Codex chat:\n", "Title" } }
+  local buffer = vim.api.nvim_create_buf(false, true)
+  local lines = {}
   for index, thread in ipairs(threads) do
-    choices[#choices + 1] = { string.format("%d. %s\n", index, format_thread(thread)), "Normal" }
-  end
-  vim.api.nvim_echo(choices, true, {})
-
-  vim.fn.inputsave()
-  local answer = vim.fn.input("Codex chat number (empty cancels): ")
-  vim.fn.inputrestore()
-
-  if answer == "" then
-    callback(nil)
-    return
+    lines[index] = format_thread(thread)
   end
 
-  local index = tonumber(answer)
-  if not index or index % 1 ~= 0 or not threads[index] then
-    notify("Enter a chat number from the list", vim.log.levels.WARN)
-    callback(nil)
-    return
+  vim.api.nvim_buf_set_lines(buffer, 0, -1, false, lines)
+  vim.bo[buffer].modifiable = false
+
+  local longest_line = 0
+  for _, line in ipairs(lines) do
+    longest_line = math.max(longest_line, vim.fn.strdisplaywidth(line))
   end
 
-  callback(threads[index])
+  local height = math.min(#lines, math.max(1, math.floor(vim.o.lines * 0.6)))
+  local number_width = #tostring(#lines) + 1
+  local width = math.min(longest_line + number_width, math.max(20, vim.o.columns - 8))
+  local window = vim.api.nvim_open_win(buffer, true, {
+    border = "rounded",
+    col = math.max(0, math.floor((vim.o.columns - width) / 2)),
+    height = height,
+    relative = "editor",
+    row = math.max(0, math.floor((vim.o.lines - height) / 2)),
+    style = "minimal",
+    width = width,
+  })
+
+  vim.wo[window].cursorline = true
+  vim.wo[window].number = true
+  vim.wo[window].relativenumber = false
+  vim.wo[window].signcolumn = "no"
+  vim.wo[window].wrap = false
+
+  local finished = false
+  local function close(thread)
+    if finished then
+      return
+    end
+    finished = true
+    if vim.api.nvim_win_is_valid(window) then
+      vim.api.nvim_win_close(window, true)
+    end
+    callback(thread)
+  end
+
+  local function choose()
+    local index = vim.v.count
+    if index == 0 then
+      index = vim.api.nvim_win_get_cursor(window)[1]
+    end
+    close(threads[index])
+  end
+
+  local function map(keys, handler)
+    vim.keymap.set("n", keys, handler, { buffer = buffer, nowait = true, silent = true })
+  end
+
+  map("<CR>", choose)
+  map("<Esc>", function()
+    close(nil)
+  end)
+  map("q", function()
+    close(nil)
+  end)
+  map("<Up>", "k")
+  map("<Down>", "j")
+
+  vim.api.nvim_create_autocmd("WinClosed", {
+    callback = function(event)
+      if tonumber(event.match) == window then
+        close(nil)
+      end
+    end,
+    once = true,
+  })
 end
 
 --- Fetch the interactive, non-archived Codex chats for NeoVim's current project.
@@ -731,7 +783,6 @@ function M.list()
 
       state.selected_thread = thread
       persist_selection()
-      notify("Selected Codex chat: " .. (thread.name or thread.preview or thread.id))
     end)
   end)
 end

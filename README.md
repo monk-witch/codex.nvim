@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.9 — persistent per-project chat selection with line-range input.** The public API is small and may change before `1.0.0`.
+**0.0.10 — clean keyboard chat picker with persistent line-range input.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -30,7 +30,7 @@ This is intentionally not an attempt to embed Codex CLI inside NeoVim, nor to ha
 :CodexSend
 ```
 
-`CodexList` and its `CodexLS` alias show a numbered keyboard picker listing non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Type its number and press `<Enter>` to select a chat; submit an empty response to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
+`CodexList` and its `CodexLS` alias open a keyboard-only list of non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Move the cursor with the arrow keys and press `<Enter>` to select it, or type a line number then press `<Enter>` to select that chat directly. Press `<Esc>` or `q` to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
 
 ```lua
 local codex = require("codex")
