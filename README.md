@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.7 — version-locked App Server chat selection with native statusline progress.** The public API is small and may change before `1.0.0`.
+**0.0.8 — line-range chat input with resilient local WebSocket transport.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -22,14 +22,15 @@ This is intentionally not an attempt to embed Codex CLI inside NeoVim, nor to ha
 
 ## Available now
 
-`codex.nvim` provides two equivalent commands:
+`codex.nvim` provides these commands:
 
 ```vim
 :CodexList
 :CodexLS
+:CodexSend
 ```
 
-They show a numbered keyboard picker listing non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Type its number and press `<Enter>` to select a chat; submit an empty response to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
+`CodexList` and its `CodexLS` alias show a numbered keyboard picker listing non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Type its number and press `<Enter>` to select a chat; submit an empty response to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
 
 ```lua
 local codex = require("codex")
@@ -39,7 +40,27 @@ codex.selected_chat_id() -- the selected thread ID, or nil
 codex.clear_selection()
 ```
 
-The picker deliberately excludes archived chats and chats from other projects. It does not open, resume, alter, or subscribe to a selected conversation yet.
+### Send a line range to the selected chat
+
+Use `:CodexSend` to send the current line, or use an Ex line range to send those lines verbatim as the next user message in the selected Codex chat:
+
+```vim
+:CodexSend          " current line
+:12,30CodexSend     " lines 12 through 30
+:'<,'>CodexSend     " lines covered by the active Visual selection
+```
+
+`CodexSend` resumes the selected chat and starts a new Codex turn. It sends linewise text only: a characterwise Visual selection is expanded to its containing lines. The command never sends text to an unselected chat, and it leaves the chat's existing working directory, sandbox, and approval settings unchanged.
+
+The underlying API is also available for a future mapping or integration:
+
+```lua
+require("codex").send("Explain this snippet", function(err, turn)
+  -- `turn` is the accepted App Server turn, or nil when `err` is set.
+end)
+```
+
+The picker deliberately excludes archived chats and chats from other projects. Selecting a chat does not itself open, resume, or alter it; `CodexSend` does so only when you explicitly send text.
 
 `codex.nvim` is keyboard-first. It provides no mouse bindings, click handlers, or mouse-specific UI, and does not delegate chat selection to `vim.ui.select` or its mouse-oriented fallback prompt. The plugin leaves NeoVim's global `mouse` option unchanged.
 
@@ -107,9 +128,8 @@ require("codex").setup({ auto_start = false })
 ## Next steps
 
 1. Show the active chat and add an explicit command to clear it.
-2. Send a prompt, current-file reference, or visual selection to the selected chat.
-3. Stream agent replies into a NeoVim scratch buffer.
-4. Present Codex command and file-change approvals through NeoVim's native UI.
+2. Stream agent replies into a NeoVim scratch buffer.
+3. Present Codex command and file-change approvals through NeoVim's native UI.
 
 ## Requirements
 

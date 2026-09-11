@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.7"
+local plugin_version = "0.0.8"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -12,6 +12,7 @@ local defaults = {
   auto_start = true,
   connect_timeout_ms = 5000,
   list_limit = 100,
+  max_websocket_payload_bytes = 16 * 1024 * 1024,
   progress = {
     delay_ms = 120,
     enabled = true,
@@ -144,9 +145,26 @@ local function random_bytes(length)
   return table.concat(values)
 end
 
+local function bytes_from_u64(value)
+  local bytes = {}
+  for index = 8, 1, -1 do
+    bytes[index] = string.char(value % 256)
+    value = math.floor(value / 256)
+  end
+  return table.concat(bytes)
+end
+
+local function u64_from_bytes(buffer, start_index)
+  local value = 0
+  for index = start_index, start_index + 7 do
+    value = value * 256 + buffer:byte(index)
+  end
+  return value
+end
+
 local function encode_frame(payload, opcode)
   local length = #payload
-  if length > 65535 then
+  if length > config.max_websocket_payload_bytes then
     return nil, "WebSocket payload is too large"
   end
 
@@ -154,8 +172,10 @@ local function encode_frame(payload, opcode)
   local header = string.char(0x80 + (opcode or 0x1))
   if length < 126 then
     header = header .. string.char(0x80 + length)
-  else
+  elseif length <= 65535 then
     header = header .. string.char(0x80 + 126, math.floor(length / 256), length % 256)
+  else
+    header = header .. string.char(0x80 + 127) .. bytes_from_u64(length)
   end
 
   local masked = {}
@@ -253,8 +273,15 @@ local function consume_frames()
       length = high * 256 + low
       position = 5
     elseif length == 127 then
-      disconnect("Codex App Server sent an unsupported WebSocket payload size")
-      return
+      if #buffer < 10 then
+        return
+      end
+      length = u64_from_bytes(buffer, 3)
+      if length > config.max_websocket_payload_bytes then
+        disconnect("Codex App Server sent a WebSocket payload that exceeds the configured limit")
+        return
+      end
+      position = 11
     end
 
     local mask
@@ -365,6 +392,13 @@ local function start_socket()
 
   socket:connect(socket_path(), function(connect_err)
     vim.schedule(function()
+      if state.socket ~= socket then
+        if not socket:is_closing() then
+          socket:close()
+        end
+        return
+      end
+
       if connect_err then
         disconnect("Could not connect to the Codex App Server socket: " .. connect_err)
         return
@@ -372,6 +406,10 @@ local function start_socket()
 
       socket:read_start(function(read_err, data)
         vim.schedule(function()
+          if state.socket ~= socket then
+            return
+          end
+
           if read_err then
             disconnect("Codex App Server socket error: " .. read_err)
           elseif data then
@@ -607,6 +645,80 @@ function M.list()
   end)
 end
 
+--- Send text to the Codex chat selected for this NeoVim instance.
+--- The selected thread is resumed before its new turn starts.
+--- @param text string
+--- @param callback fun(err: string|nil, turn: table|nil)
+function M.send(text, callback)
+  local requirement_err = nvim_requirement_error()
+  if requirement_err then
+    callback(requirement_err, nil)
+    return
+  end
+
+  local thread = state.selected_thread
+  if not thread or not thread.id then
+    callback("Select a Codex chat with :CodexList before sending text", nil)
+    return
+  end
+
+  if text == "" then
+    callback("Cannot send an empty line range", nil)
+    return
+  end
+
+  connect(function(connect_err)
+    if connect_err then
+      callback(connect_err, nil)
+      return
+    end
+
+    request("thread/resume", { threadId = thread.id }, function(resume_err)
+      if resume_err then
+        callback(resume_err, nil)
+        return
+      end
+
+      request("turn/start", {
+        threadId = thread.id,
+        input = {
+          { type = "text", text = text },
+        },
+      }, function(turn_err, result)
+        if turn_err then
+          callback(turn_err, nil)
+          return
+        end
+        callback(nil, result.turn)
+      end)
+    end)
+  end)
+end
+
+--- Send the inclusive line range from the current buffer to the selected Codex chat.
+--- @param line1 integer
+--- @param line2 integer
+function M.send_range(line1, line2)
+  local lines = vim.api.nvim_buf_get_lines(0, line1 - 1, line2, false)
+  local text = table.concat(lines, "\n")
+  local operation = progress.start("Sending selection to Codex…")
+
+  M.send(text, function(err, turn)
+    progress.stop(operation)
+
+    if err then
+      notify(err, vim.log.levels.ERROR)
+      return
+    end
+
+    local line_count = line2 - line1 + 1
+    local thread = state.selected_thread
+    local title = thread and (thread.name or thread.preview or thread.id) or "selected Codex chat"
+    local turn_id = turn and turn.id and " (turn " .. turn.id .. ")" or ""
+    notify(string.format("Sent %d %s to Codex chat: %s%s", line_count, line_count == 1 and "line" or "lines", title, turn_id))
+  end)
+end
+
 --- Return the chat selected for this NeoVim instance, or nil.
 function M.selected_chat()
   return state.selected_thread
@@ -655,6 +767,14 @@ function M.setup(options)
     M.list()
   end, {
     desc = "Alias for :CodexList",
+  })
+
+  vim.api.nvim_create_user_command("CodexSend", function(command)
+    M.send_range(command.line1, command.line2)
+  end, {
+    bar = true,
+    desc = "Send the selected line range to the active Codex chat",
+    range = true,
   })
 end
 
