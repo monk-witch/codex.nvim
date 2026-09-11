@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.2 — chat selection.** The public API is small and may change before `1.0.0`.
+**0.0.3 — chat selection over the local App Server WebSocket.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -41,7 +41,7 @@ codex.clear_selection()
 
 The picker deliberately excludes archived chats and chats from other projects. It does not open, resume, alter, or subscribe to a selected conversation yet.
 
-On first use, the plugin starts the local App Server daemon when necessary, then communicates through `codex app-server proxy`. This is a local subprocess transport only; it does not create or control a terminal window.
+On first use, the plugin starts the local App Server daemon when necessary, then connects to its local Unix-socket WebSocket endpoint. This is a local transport only; it does not create or control a terminal window.
 
 ### Install for local development
 
