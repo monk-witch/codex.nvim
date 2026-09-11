@@ -9,22 +9,22 @@ if [[ -z "$version" ]]; then
   exit 1
 fi
 
-if ! rg -Fq "**$version " README.md; then
+if ! grep -Fq "**$version " README.md; then
   echo "README.md status does not name $version" >&2
   exit 1
 fi
 
-if ! rg -Fq "version = \"v$version\"" README.md; then
+if ! grep -Fq "version = \"v$version\"" README.md; then
   echo "README.md install examples do not pin v$version" >&2
   exit 1
 fi
 
-if ! rg -Fq "## [$version]" CHANGELOG.md; then
+if ! grep -Fq "## [$version]" CHANGELOG.md; then
   echo "CHANGELOG.md has no section for $version" >&2
   exit 1
 fi
 
-if ! rg -Fq "local plugin_version = version.current" lua/codex/init.lua; then
+if ! grep -Fq "local plugin_version = version.current" lua/codex/init.lua; then
   echo "lua/codex/init.lua does not use the central version module" >&2
   exit 1
 fi
