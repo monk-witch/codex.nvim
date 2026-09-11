@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.8"
+local plugin_version = "0.0.9"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -17,6 +17,10 @@ local defaults = {
     delay_ms = 120,
     enabled = true,
     interval_ms = 100,
+  },
+  selection = {
+    persist = true,
+    state_path = nil,
   },
   socket_path = nil,
   statusline = {
@@ -34,6 +38,7 @@ local state = {
   pending = {},
   ready = false,
   selected_thread = nil,
+  selection_restored_path = nil,
   socket = nil,
   starting = false,
   transport_buffer = "",
@@ -86,6 +91,91 @@ local function socket_path()
 
   local codex_home = vim.env.CODEX_HOME or vim.fn.expand("~/.codex")
   return codex_home .. "/app-server-control/app-server-control.sock"
+end
+
+local function selection_state_path()
+  if config.selection.state_path then
+    return config.selection.state_path
+  end
+  return vim.fs.joinpath(vim.fn.stdpath("state"), "codex.nvim", "selection.json")
+end
+
+local function selection_store()
+  return { version = 1, selections = {} }
+end
+
+local function read_selection_store()
+  local path = selection_state_path()
+  if vim.fn.filereadable(path) ~= 1 then
+    return selection_store()
+  end
+
+  local ok, decoded = pcall(vim.json.decode, table.concat(vim.fn.readfile(path), "\n"))
+  if not ok or type(decoded) ~= "table" or type(decoded.selections) ~= "table" then
+    return selection_store()
+  end
+  return decoded
+end
+
+local function write_selection_store(store)
+  local path = selection_state_path()
+  local directory = vim.fs.dirname(path)
+  vim.fn.mkdir(directory, "p")
+
+  local temporary_path = path .. ".tmp"
+  local ok, write_err = pcall(vim.fn.writefile, { vim.json.encode(store) }, temporary_path)
+  if not ok then
+    notify("Could not save the Codex chat selection: " .. write_err, vim.log.levels.WARN)
+    return
+  end
+
+  local renamed, rename_err = vim.uv.fs_rename(temporary_path, path)
+  if not renamed then
+    pcall(vim.uv.fs_unlink, temporary_path)
+    notify("Could not save the Codex chat selection: " .. rename_err, vim.log.levels.WARN)
+  end
+end
+
+local function stored_thread(thread)
+  return {
+    id = thread.id,
+    isPinned = thread.isPinned,
+    name = thread.name,
+    preview = thread.preview,
+    updatedAt = thread.updatedAt,
+  }
+end
+
+local function persist_selection()
+  if not config.selection.persist then
+    return
+  end
+
+  local store = read_selection_store()
+  local cwd = vim.fn.getcwd(0)
+  if state.selected_thread then
+    store.selections[cwd] = stored_thread(state.selected_thread)
+  else
+    store.selections[cwd] = nil
+  end
+  write_selection_store(store)
+end
+
+local function restore_selection()
+  if not config.selection.persist then
+    return
+  end
+
+  local path = selection_state_path()
+  if state.selection_restored_path == path then
+    return
+  end
+  state.selection_restored_path = path
+
+  local thread = read_selection_store().selections[vim.fn.getcwd(0)]
+  if type(thread) == "table" and type(thread.id) == "string" and thread.id ~= "" then
+    state.selected_thread = stored_thread(thread)
+  end
 end
 
 local function clear_connect_timer()
@@ -640,6 +730,7 @@ function M.list()
       end
 
       state.selected_thread = thread
+      persist_selection()
       notify("Selected Codex chat: " .. (thread.name or thread.preview or thread.id))
     end)
   end)
@@ -732,6 +823,7 @@ end
 --- Clear the chat selected for this NeoVim instance.
 function M.clear_selection()
   state.selected_thread = nil
+  persist_selection()
 end
 
 --- Return the transient Codex statusline segment, or an empty string while idle.
@@ -755,6 +847,7 @@ function M.setup(options)
   else
     progress.setup(config.progress)
     attach_statusline_to_default()
+    restore_selection()
   end
 
   vim.api.nvim_create_user_command("CodexList", function()

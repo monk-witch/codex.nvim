@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.8 — line-range chat input with resilient local WebSocket transport.** The public API is small and may change before `1.0.0`.
+**0.0.9 — persistent per-project chat selection with line-range input.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -51,6 +51,14 @@ Use `:CodexSend` to send the current line, or use an Ex line range to send those
 ```
 
 `CodexSend` resumes the selected chat and starts a new Codex turn. It sends linewise text only: a characterwise Visual selection is expanded to its containing lines. The command never sends text to an unselected chat, and it leaves the chat's existing working directory, sandbox, and approval settings unchanged.
+
+The most recently selected chat is saved per exact project directory and restored on the next NeoVim start. Restoring selection is local state only: it does not connect to, resume, or modify the chat until you run `CodexSend` or `CodexList`. To disable this behavior:
+
+```lua
+require("codex").setup({
+  selection = { persist = false },
+})
+```
 
 The underlying API is also available for a future mapping or integration:
 
