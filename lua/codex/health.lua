@@ -46,7 +46,10 @@ local function check_codex_cli(info)
 
   local result = vim.system({ info.codex_command, "--version" }, { text = true }):wait()
   if result.code ~= 0 then
-    vim.health.error("Could not run " .. info.codex_command .. " --version", vim.trim(result.stderr or result.stdout or ""))
+    vim.health.error(
+      "Could not run " .. info.codex_command .. " --version",
+      vim.trim(result.stderr or result.stdout or "")
+    )
     return
   end
 

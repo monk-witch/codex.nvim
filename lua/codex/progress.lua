@@ -70,16 +70,20 @@ local function show_completion(message)
 
   local timer = vim.uv.new_timer()
   state.completion_timer = timer
-  timer:start(config.success_duration_ms, 0, vim.schedule_wrap(function()
-    if state.completion_timer ~= timer then
-      return
-    end
+  timer:start(
+    config.success_duration_ms,
+    0,
+    vim.schedule_wrap(function()
+      if state.completion_timer ~= timer then
+        return
+      end
 
-    stop_timer("completion_timer")
-    state.completion = nil
-    state.visible = false
-    request_redraw()
-  end))
+      stop_timer("completion_timer")
+      state.completion = nil
+      state.visible = false
+      request_redraw()
+    end)
+  )
 end
 
 local function advance_frame()
@@ -94,18 +98,22 @@ local function start_animation()
 
   local timer = vim.uv.new_timer()
   state.timer = timer
-  timer:start(config.interval_ms, config.interval_ms, vim.schedule_wrap(function()
-    if state.timer ~= timer then
-      return
-    end
+  timer:start(
+    config.interval_ms,
+    config.interval_ms,
+    vim.schedule_wrap(function()
+      if state.timer ~= timer then
+        return
+      end
 
-    if not has_active_operation() then
-      stop_animation()
-      return
-    end
+      if not has_active_operation() then
+        stop_animation()
+        return
+      end
 
-    advance_frame()
-  end))
+      advance_frame()
+    end)
+  )
 end
 
 local function show_after_delay()
@@ -131,14 +139,18 @@ local function start_delay()
 
   local timer = vim.uv.new_timer()
   state.delay_timer = timer
-  timer:start(config.delay_ms, 0, vim.schedule_wrap(function()
-    if state.delay_timer ~= timer then
-      return
-    end
+  timer:start(
+    config.delay_ms,
+    0,
+    vim.schedule_wrap(function()
+      if state.delay_timer ~= timer then
+        return
+      end
 
-    stop_timer("delay_timer")
-    show_after_delay()
-  end))
+      stop_timer("delay_timer")
+      show_after_delay()
+    end)
+  )
 end
 
 local function current_operation()

@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.16 — protocol-tested local App Server integration.** The public API is small and may change before `1.0.0`.
+**0.0.17 — protocol-tested local App Server integration with CI.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -191,6 +191,8 @@ bash tests/run.sh
 ```
 
 It needs NeoVim, Bash, and Python 3, but does not need a Codex account or running daemon. The test App Server verifies the full local WebSocket send path, including payloads larger than 65 KB.
+
+Every push and pull request runs this suite against the supported minimum NeoVim version (`0.12.5`) and checks Lua formatting with StyLua `2.5.2`.
 
 ## Contributing
 

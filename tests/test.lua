@@ -37,9 +37,12 @@ codex.send(string.rep("x", 70000), function(err, turn)
   assert(turn.id == "turn_test")
   sent = true
 end)
-assert(vim.wait(3000, function()
-  return sent
-end, 20), "timed out waiting for the fake App Server")
+assert(
+  vim.wait(3000, function()
+    return sent
+  end, 20),
+  "timed out waiting for the fake App Server"
+)
 
 local sent_text
 codex.send = function(text, callback)
@@ -54,9 +57,12 @@ assert(sent_text == "two\nthree", vim.inspect(sent_text))
 vim.cmd([[CoCh literal | "quoted" []{}$#@!]])
 assert(sent_text == [[literal | "quoted" []{}$#@!]], vim.inspect(sent_text))
 assert(codex.status() == " ·   Input sent", codex.status())
-assert(vim.wait(300, function()
-  return codex.status() == ""
-end, 10), codex.status())
+assert(
+  vim.wait(300, function()
+    return codex.status() == ""
+  end, 10),
+  codex.status()
+)
 
 local persist_selection = assert(upvalue(codex.clear_selection, "persist_selection"))
 state.selected_thread = { id = "thr_saved", name = "Saved chat" }

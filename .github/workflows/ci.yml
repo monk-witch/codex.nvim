@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Neovim 0.12.5
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check Lua formatting
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 2.5.2
+          args: --check lua tests
+
+      - name: Install Neovim 0.12.5
+        run: |
+          curl -fsSL https://github.com/neovim/neovim/releases/download/v0.12.5/nvim-linux-x86_64.tar.gz \
+            -o /tmp/nvim-linux-x86_64.tar.gz
+          mkdir -p "$RUNNER_TEMP/nvim"
+          tar -xzf /tmp/nvim-linux-x86_64.tar.gz -C "$RUNNER_TEMP/nvim"
+          echo "$RUNNER_TEMP/nvim/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Neovim version
+        run: nvim --version
+
+      - name: Run App Server protocol tests
+        run: bash tests/run.sh

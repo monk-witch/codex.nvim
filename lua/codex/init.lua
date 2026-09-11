@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.16"
+local plugin_version = "0.0.17"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -547,11 +547,13 @@ local function check_codex_version(callback)
       end
 
       if not is_version_at_least(version, minimum_codex_version) then
-        callback(string.format(
-          "codex.nvim requires Codex CLI %s or newer (found %s)",
-          format_version(minimum_codex_version),
-          format_version(version)
-        ))
+        callback(
+          string.format(
+            "codex.nvim requires Codex CLI %s or newer (found %s)",
+            format_version(minimum_codex_version),
+            format_version(version)
+          )
+        )
         return
       end
       callback(nil)
@@ -597,9 +599,13 @@ local function connect(callback)
   state.starting = true
 
   state.connect_timer = vim.uv.new_timer()
-  state.connect_timer:start(config.connect_timeout_ms, 0, vim.schedule_wrap(function()
-    disconnect("Timed out connecting to the Codex App Server")
-  end))
+  state.connect_timer:start(
+    config.connect_timeout_ms,
+    0,
+    vim.schedule_wrap(function()
+      disconnect("Timed out connecting to the Codex App Server")
+    end)
+  )
 
   ensure_daemon(function(err)
     if err then
