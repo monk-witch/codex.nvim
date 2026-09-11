@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.3 — chat selection over the local App Server WebSocket.** The public API is small and may change before `1.0.0`.
+**0.0.4 — keyboard-first chat selection over the local App Server WebSocket.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -40,6 +40,8 @@ codex.clear_selection()
 ```
 
 The picker deliberately excludes archived chats and chats from other projects. It does not open, resume, alter, or subscribe to a selected conversation yet.
+
+`codex.nvim` is keyboard-first. It provides no mouse bindings, click handlers, or mouse-specific UI. The plugin deliberately leaves NeoVim's global `mouse` option and any user-installed `vim.ui.select` provider alone.
 
 On first use, the plugin starts the local App Server daemon when necessary, then connects to its local Unix-socket WebSocket endpoint. This is a local transport only; it does not create or control a terminal window.
 
