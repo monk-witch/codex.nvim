@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible problem with codex.nvim.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, local socket paths, buffer text, or private Codex chat content.
+  - type: input
+    id: plugin_version
+    attributes:
+      label: codex.nvim version or commit
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: nvim_version
+    attributes:
+      label: NeoVim version
+      placeholder: NVIM v0.12.5
+    validations:
+      required: true
+  - type: input
+    id: codex_version
+    attributes:
+      label: Codex CLI version
+      placeholder: codex-cli 0.154.0
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include setup and exact commands, with sensitive values redacted.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and relevant redacted messages
+    validations:
+      required: true

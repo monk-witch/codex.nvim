@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.18 — protocol-tested local App Server integration with CI and native help.** The public API is small and may change before `1.0.0`.
+**0.0.19 — protocol-tested local App Server integration with CI, native help, and contributor guidance.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -237,7 +237,7 @@ Every push and pull request runs this suite against the supported minimum NeoVim
 
 ## Contributing
 
-Issues, design discussion, and pull requests are welcome. The project aims to be small, composable, accessible, and respectful of user-managed terminal and window-manager workflows.
+Issues, design discussion, and pull requests are welcome. The project aims to be small, composable, accessible, and respectful of user-managed terminal and window-manager workflows. See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and the public compatibility policy, and [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
 
 ## License
 
