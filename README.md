@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.5 — keyboard-first chat selection over the local App Server WebSocket.** The public API is small and may change before `1.0.0`.
+**0.0.6 — keyboard-first chat selection with native statusline progress.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -44,6 +44,46 @@ The picker deliberately excludes archived chats and chats from other projects. I
 `codex.nvim` is keyboard-first. It provides no mouse bindings, click handlers, or mouse-specific UI, and does not delegate chat selection to `vim.ui.select` or its mouse-oriented fallback prompt. The plugin leaves NeoVim's global `mouse` option unchanged.
 
 On first use, the plugin starts the local App Server daemon when necessary, then connects to its local Unix-socket WebSocket endpoint. This is a local transport only; it does not create or control a terminal window.
+
+### Statusline progress
+
+While `:CodexList` is waiting on the App Server, `codex.nvim` exposes a compact Braille spinner for your existing statusline:
+
+```text
+· ⠹ Listing Codex chats…
+```
+
+It appears only after 120 ms, updates in place every 100 ms, and disappears before the keyboard picker opens. With NeoVim's untouched native statusline, the plugin places it immediately after the filename automatically. It never replaces a statusline you have configured yourself.
+
+For a custom statusline, add its component wherever you want it to appear:
+
+For a native statusline:
+
+```vim
+set statusline+=%{%v:lua.require'codex'.status()%}
+```
+
+For lualine:
+
+```lua
+{
+  function()
+    return require("codex").status()
+  end,
+}
+```
+
+The component refreshes with `:redrawstatus` while an operation is active. It returns `""` while idle, so it takes no space. The current defaults can be changed during setup:
+
+```lua
+require("codex").setup({
+  progress = {
+    enabled = true,
+    delay_ms = 120,
+    interval_ms = 100,
+  },
+})
+```
 
 ### Install for local development
 

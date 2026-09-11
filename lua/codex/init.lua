@@ -1,13 +1,22 @@
 local M = {}
 
 local bit = bit or bit32
+local progress = require("codex.progress")
 
 local defaults = {
   codex_command = "codex",
   auto_start = true,
   connect_timeout_ms = 5000,
   list_limit = 100,
+  progress = {
+    delay_ms = 120,
+    enabled = true,
+    interval_ms = 100,
+  },
   socket_path = nil,
+  statusline = {
+    attach_to_default = true,
+  },
 }
 
 local config = vim.deepcopy(defaults)
@@ -276,7 +285,7 @@ local function begin_protocol()
       clientInfo = {
         name = "codex.nvim",
         title = "codex.nvim",
-        version = "0.0.5",
+        version = "0.0.6",
       },
     },
   })
@@ -412,6 +421,27 @@ local function format_thread(thread)
   return pinned .. title
 end
 
+local statusline_component = "%{%v:lua.require'codex'.status()%}"
+
+local function attach_statusline_to_default()
+  if not config.statusline.attach_to_default then
+    return
+  end
+
+  local info = vim.api.nvim_get_option_info2("statusline", {})
+  if info.was_set or vim.o.statusline:find(statusline_component, 1, true) then
+    return
+  end
+
+  local updated, substitutions = vim.o.statusline:gsub("%%f ", function()
+    return "%f" .. statusline_component .. " "
+  end, 1)
+
+  if substitutions == 1 then
+    vim.o.statusline = updated
+  end
+end
+
 local function select_thread(threads, callback)
   local choices = { { "Select Codex chat:\n", "Title" } }
   for index, thread in ipairs(threads) do
@@ -465,7 +495,10 @@ end
 
 --- Open NeoVim's native selector and retain the chosen thread for this NeoVim instance.
 function M.list()
+  local operation = progress.start("Listing Codex chats…")
   M.list_chats(function(err, threads)
+    progress.stop(operation)
+
     if err then
       notify(err, vim.log.levels.ERROR)
       return
@@ -502,8 +535,23 @@ function M.clear_selection()
   state.selected_thread = nil
 end
 
+--- Return the transient Codex statusline segment, or an empty string while idle.
+--- Add this function to your custom statusline configuration.
+--- @return string
+function M.status()
+  return progress.statusline()
+end
+
+--- Return whether Codex.nvim has an operation currently in progress.
+--- @return boolean
+function M.is_busy()
+  return progress.is_busy()
+end
+
 function M.setup(options)
   config = vim.tbl_deep_extend("force", config, options or {})
+  progress.setup(config.progress)
+  attach_statusline_to_default()
 
   vim.api.nvim_create_user_command("CodexList", function()
     M.list()
