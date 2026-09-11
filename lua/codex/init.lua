@@ -3,6 +3,10 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
+local plugin_version = "0.0.7"
+local minimum_codex_version = { 0, 154, 0 }
+local minimum_nvim_version = { 0, 12, 5 }
+
 local defaults = {
   codex_command = "codex",
   auto_start = true,
@@ -36,6 +40,42 @@ local state = {
 
 local function notify(message, level)
   vim.notify(message, level or vim.log.levels.INFO, { title = "codex.nvim" })
+end
+
+local function format_version(version)
+  return table.concat(version, ".")
+end
+
+local function is_version_at_least(actual, minimum)
+  for index = 1, #minimum do
+    local actual_part = actual[index] or 0
+    if actual_part ~= minimum[index] then
+      return actual_part > minimum[index]
+    end
+  end
+  return true
+end
+
+local function nvim_requirement_error()
+  local version = vim.version()
+  local actual = { version.major, version.minor, version.patch }
+  if is_version_at_least(actual, minimum_nvim_version) then
+    return nil
+  end
+
+  return string.format(
+    "codex.nvim requires NeoVim %s or newer (found %s)",
+    format_version(minimum_nvim_version),
+    format_version(actual)
+  )
+end
+
+local function parse_version(output)
+  local major, minor, patch = output:match("(%d+)%.(%d+)%.(%d+)")
+  if not major then
+    return nil
+  end
+  return { tonumber(major), tonumber(minor), tonumber(patch) }
 end
 
 local function socket_path()
@@ -285,7 +325,7 @@ local function begin_protocol()
       clientInfo = {
         name = "codex.nvim",
         title = "codex.nvim",
-        version = "0.0.6",
+        version = plugin_version,
       },
     },
   })
@@ -362,20 +402,55 @@ local function start_socket()
   end)
 end
 
-local function ensure_daemon(callback)
-  if not config.auto_start then
-    callback(nil)
-    return
-  end
-
-  vim.system({ config.codex_command, "app-server", "daemon", "start" }, { text = true }, function(result)
+local function check_codex_version(callback)
+  vim.system({ config.codex_command, "--version" }, { text = true }, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
         local detail = vim.trim(result.stderr or result.stdout or "")
-        callback("Could not start the Codex App Server daemon" .. (detail ~= "" and ": " .. detail or ""))
+        callback("Could not run Codex CLI --version" .. (detail ~= "" and ": " .. detail or ""))
+        return
+      end
+
+      local version = parse_version(result.stdout or "")
+      if not version then
+        callback("Could not determine the Codex CLI version from: " .. vim.trim(result.stdout or ""))
+        return
+      end
+
+      if not is_version_at_least(version, minimum_codex_version) then
+        callback(string.format(
+          "codex.nvim requires Codex CLI %s or newer (found %s)",
+          format_version(minimum_codex_version),
+          format_version(version)
+        ))
         return
       end
       callback(nil)
+    end)
+  end)
+end
+
+local function ensure_daemon(callback)
+  check_codex_version(function(version_err)
+    if version_err then
+      callback(version_err)
+      return
+    end
+
+    if not config.auto_start then
+      callback(nil)
+      return
+    end
+
+    vim.system({ config.codex_command, "app-server", "daemon", "start" }, { text = true }, function(result)
+      vim.schedule(function()
+        if result.code ~= 0 then
+          local detail = vim.trim(result.stderr or result.stdout or "")
+          callback("Could not start the Codex App Server daemon" .. (detail ~= "" and ": " .. detail or ""))
+          return
+        end
+        callback(nil)
+      end)
     end)
   end)
 end
@@ -471,6 +546,12 @@ end
 --- Fetch the interactive, non-archived Codex chats for NeoVim's current project.
 --- @param callback fun(err: string|nil, threads: table[]|nil)
 function M.list_chats(callback)
+  local requirement_err = nvim_requirement_error()
+  if requirement_err then
+    callback(requirement_err, nil)
+    return
+  end
+
   connect(function(err)
     if err then
       callback(err, nil)
@@ -495,6 +576,12 @@ end
 
 --- Open NeoVim's native selector and retain the chosen thread for this NeoVim instance.
 function M.list()
+  local requirement_err = nvim_requirement_error()
+  if requirement_err then
+    notify(requirement_err, vim.log.levels.ERROR)
+    return
+  end
+
   local operation = progress.start("Listing Codex chats…")
   M.list_chats(function(err, threads)
     progress.stop(operation)
@@ -550,8 +637,13 @@ end
 
 function M.setup(options)
   config = vim.tbl_deep_extend("force", config, options or {})
-  progress.setup(config.progress)
-  attach_statusline_to_default()
+  local requirement_err = nvim_requirement_error()
+  if requirement_err then
+    notify(requirement_err, vim.log.levels.ERROR)
+  else
+    progress.setup(config.progress)
+    attach_statusline_to_default()
+  end
 
   vim.api.nvim_create_user_command("CodexList", function()
     M.list()

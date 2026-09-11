@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.6 — keyboard-first chat selection with native statusline progress.** The public API is small and may change before `1.0.0`.
+**0.0.7 — version-locked App Server chat selection with native statusline progress.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -113,8 +113,16 @@ require("codex").setup({ auto_start = false })
 
 ## Requirements
 
-- NeoVim 0.10 or newer.
-- A locally authenticated [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) with `codex app-server` available.
+- **NeoVim 0.12.5 or newer.** `codex.nvim` checks this when it starts and refuses App Server operations on older versions.
+- **Codex CLI 0.154.0 or newer**, including its matching local App Server. `codex.nvim` checks `codex --version` before it connects or starts the daemon.
+- A local Codex CLI authentication and the App Server daemon. Check it with:
+
+  ```sh
+  codex --version
+  codex app-server daemon version
+  ```
+
+These are deliberately pinned minimums, not merely versions that might work. This release was developed and validated against NeoVim `0.12.5` and Codex CLI/App Server `0.154.0`. The App Server protocol is version-coupled to the CLI that provides it; OpenAI documents generated protocol artifacts as matching the specific Codex version that generated them. [See the App Server documentation](https://learn.chatgpt.com/docs/app-server).
 
 ## Contributing
 
