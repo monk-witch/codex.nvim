@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.11 — quiet line-range input with brief statusline confirmation.** The public API is small and may change before `1.0.0`.
+**0.0.12 — direct chat input alongside quiet line-range sending.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -28,6 +28,7 @@ This is intentionally not an attempt to embed Codex CLI inside NeoVim, nor to ha
 :CodexList
 :CodexLS
 :CodexSend
+:CodexChat
 ```
 
 `CodexList` and its `CodexLS` alias open a keyboard-only list of non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Move the cursor with the arrow keys and press `<Enter>` to select it, or type a line number then press `<Enter>` to select that chat directly. Press `<Esc>` or `q` to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
@@ -67,6 +68,17 @@ require("codex").send("Explain this snippet", function(err, turn)
   -- `turn` is the accepted App Server turn, or nil when `err` is set.
 end)
 ```
+
+### Send direct chat input
+
+Use `:CodexChat` to send the rest of its command line as direct input to the selected chat:
+
+```vim
+:CodexChat Explain why this function uses a timer.
+:CodexChat Please review: []{}()$#@! and "quoted text".
+```
+
+For text containing a newline or content more convenient to construct in Lua, use `require("codex").chat(text)` instead.
 
 The picker deliberately excludes archived chats and chats from other projects. Selecting a chat does not itself open, resume, or alter it; `CodexSend` does so only when you explicitly send text.
 

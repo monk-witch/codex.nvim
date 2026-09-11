@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.11"
+local plugin_version = "0.0.12"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -843,7 +843,13 @@ end
 function M.send_range(line1, line2)
   local lines = vim.api.nvim_buf_get_lines(0, line1 - 1, line2, false)
   local text = table.concat(lines, "\n")
-  local operation = progress.start("Sending selection to Codex…")
+  M.chat(text)
+end
+
+--- Send direct input to the Codex chat selected for this NeoVim instance.
+--- @param text string
+function M.chat(text)
+  local operation = progress.start("Sending input to Codex…")
 
   M.send(text, function(err)
     progress.stop(operation, err and nil or "Input sent")
@@ -912,6 +918,14 @@ function M.setup(options)
     bar = true,
     desc = "Send the selected line range to the active Codex chat",
     range = true,
+  })
+
+  vim.api.nvim_create_user_command("CodexChat", function(command)
+    M.chat(command.args)
+  end, {
+    bar = false,
+    desc = "Send direct input to the active Codex chat",
+    nargs = "*",
   })
 end
 
