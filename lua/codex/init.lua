@@ -276,7 +276,7 @@ local function begin_protocol()
       clientInfo = {
         name = "codex.nvim",
         title = "codex.nvim",
-        version = "0.0.3",
+        version = "0.0.5",
       },
     },
   })
@@ -412,6 +412,32 @@ local function format_thread(thread)
   return pinned .. title
 end
 
+local function select_thread(threads, callback)
+  local choices = { { "Select Codex chat:\n", "Title" } }
+  for index, thread in ipairs(threads) do
+    choices[#choices + 1] = { string.format("%d. %s\n", index, format_thread(thread)), "Normal" }
+  end
+  vim.api.nvim_echo(choices, true, {})
+
+  vim.fn.inputsave()
+  local answer = vim.fn.input("Codex chat number (empty cancels): ")
+  vim.fn.inputrestore()
+
+  if answer == "" then
+    callback(nil)
+    return
+  end
+
+  local index = tonumber(answer)
+  if not index or index % 1 ~= 0 or not threads[index] then
+    notify("Enter a chat number from the list", vim.log.levels.WARN)
+    callback(nil)
+    return
+  end
+
+  callback(threads[index])
+end
+
 --- Fetch the interactive, non-archived Codex chats for NeoVim's current project.
 --- @param callback fun(err: string|nil, threads: table[]|nil)
 function M.list_chats(callback)
@@ -450,10 +476,7 @@ function M.list()
       return
     end
 
-    vim.ui.select(threads, {
-      prompt = "Select Codex chat",
-      format_item = format_thread,
-    }, function(thread)
+    select_thread(threads, function(thread)
       if not thread then
         return
       end

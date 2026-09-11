@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.4 — keyboard-first chat selection over the local App Server WebSocket.** The public API is small and may change before `1.0.0`.
+**0.0.5 — keyboard-first chat selection over the local App Server WebSocket.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -29,7 +29,7 @@ This is intentionally not an attempt to embed Codex CLI inside NeoVim, nor to ha
 :CodexLS
 ```
 
-They use NeoVim's native `vim.ui.select` picker to list non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Choose one and `codex.nvim` retains it for the entire current NeoVim instance:
+They show a numbered keyboard picker listing non-archived interactive Codex chats whose working directory exactly matches NeoVim's current working directory. Type its number and press `<Enter>` to select a chat; submit an empty response to cancel. `codex.nvim` retains the chosen chat for the entire current NeoVim instance:
 
 ```lua
 local codex = require("codex")
@@ -41,7 +41,7 @@ codex.clear_selection()
 
 The picker deliberately excludes archived chats and chats from other projects. It does not open, resume, alter, or subscribe to a selected conversation yet.
 
-`codex.nvim` is keyboard-first. It provides no mouse bindings, click handlers, or mouse-specific UI. The plugin deliberately leaves NeoVim's global `mouse` option and any user-installed `vim.ui.select` provider alone.
+`codex.nvim` is keyboard-first. It provides no mouse bindings, click handlers, or mouse-specific UI, and does not delegate chat selection to `vim.ui.select` or its mouse-oriented fallback prompt. The plugin leaves NeoVim's global `mouse` option unchanged.
 
 On first use, the plugin starts the local App Server daemon when necessary, then connects to its local Unix-socket WebSocket endpoint. This is a local transport only; it does not create or control a terminal window.
 
