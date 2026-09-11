@@ -6,12 +6,15 @@ local defaults = {
   enabled = true,
   delay_ms = 120,
   interval_ms = 100,
+  success_duration_ms = 1500,
 }
 
 local config = vim.deepcopy(defaults)
 
 local state = {
   active = {},
+  completion = nil,
+  completion_timer = nil,
   delay_timer = nil,
   frame = 1,
   next_id = 1,
@@ -52,6 +55,31 @@ local function stop_animation()
   stop_timer("timer")
   state.visible = false
   request_redraw()
+end
+
+local function clear_completion()
+  stop_timer("completion_timer")
+  state.completion = nil
+end
+
+local function show_completion(message)
+  stop_animation()
+  state.completion = { frame = state.frame, message = message }
+  state.visible = true
+  request_redraw()
+
+  local timer = vim.uv.new_timer()
+  state.completion_timer = timer
+  timer:start(config.success_duration_ms, 0, vim.schedule_wrap(function()
+    if state.completion_timer ~= timer then
+      return
+    end
+
+    stop_timer("completion_timer")
+    state.completion = nil
+    state.visible = false
+    request_redraw()
+  end))
 end
 
 local function advance_frame()
@@ -137,6 +165,11 @@ function M.start(message)
     return nil
   end
 
+  if state.completion then
+    clear_completion()
+    state.visible = false
+  end
+
   local token = { id = state.next_id }
   state.next_id = state.next_id + 1
   state.active[token.id] = { message = message }
@@ -148,14 +181,19 @@ end
 
 --- Stop a previously started statusline operation.
 --- @param token table|nil
-function M.stop(token)
+--- @param success_message string|nil
+function M.stop(token, success_message)
   if not token or not state.active[token.id] then
     return
   end
 
   state.active[token.id] = nil
   if not has_active_operation() then
-    stop_animation()
+    if success_message then
+      show_completion(success_message)
+    else
+      stop_animation()
+    end
   else
     request_redraw()
   end
@@ -164,6 +202,10 @@ end
 --- Return the transient Codex statusline segment, or an empty string while idle.
 --- @return string
 function M.statusline()
+  if state.completion then
+    return string.format(" ·   %s", state.completion.message)
+  end
+
   local operation = current_operation()
   if not state.visible or not operation then
     return ""

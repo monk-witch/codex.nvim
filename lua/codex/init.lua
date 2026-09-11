@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.10"
+local plugin_version = "0.0.11"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -845,19 +845,12 @@ function M.send_range(line1, line2)
   local text = table.concat(lines, "\n")
   local operation = progress.start("Sending selection to Codex…")
 
-  M.send(text, function(err, turn)
-    progress.stop(operation)
+  M.send(text, function(err)
+    progress.stop(operation, err and nil or "Input sent")
 
     if err then
       notify(err, vim.log.levels.ERROR)
-      return
     end
-
-    local line_count = line2 - line1 + 1
-    local thread = state.selected_thread
-    local title = thread and (thread.name or thread.preview or thread.id) or "selected Codex chat"
-    local turn_id = turn and turn.id and " (turn " .. turn.id .. ")" or ""
-    notify(string.format("Sent %d %s to Codex chat: %s%s", line_count, line_count == 1 and "line" or "lines", title, turn_id))
   end)
 end
 

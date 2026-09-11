@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.10 — clean keyboard chat picker with persistent line-range input.** The public API is small and may change before `1.0.0`.
+**0.0.11 — quiet line-range input with brief statusline confirmation.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
