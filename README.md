@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.15 — native health checks with idempotent setup.** The public API is small and may change before `1.0.0`.
+**0.0.16 — protocol-tested local App Server integration.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -181,6 +181,16 @@ Run NeoVim's native health check for codex.nvim:
 ```
 
 It checks the configured NeoVim and Codex CLI versions, local App Server socket, selection-state path, and registered long and short commands. It never starts the daemon or sends a chat message.
+
+## Testing
+
+Run the dependency-free headless suite with:
+
+```sh
+bash tests/run.sh
+```
+
+It needs NeoVim, Bash, and Python 3, but does not need a Codex account or running daemon. The test App Server verifies the full local WebSocket send path, including payloads larger than 65 KB.
 
 ## Contributing
 

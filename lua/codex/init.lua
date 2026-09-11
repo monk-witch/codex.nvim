@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.15"
+local plugin_version = "0.0.16"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
