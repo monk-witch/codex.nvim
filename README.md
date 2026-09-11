@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.14 — idempotent setup with guarded short command aliases.** The public API is small and may change before `1.0.0`.
+**0.0.15 — native health checks with idempotent setup.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -171,6 +171,16 @@ require("codex").setup({ auto_start = false })
   ```
 
 These are deliberately pinned minimums, not merely versions that might work. This release was developed and validated against NeoVim `0.12.5` and Codex CLI/App Server `0.154.0`. The App Server protocol is version-coupled to the CLI that provides it; OpenAI documents generated protocol artifacts as matching the specific Codex version that generated them. [See the App Server documentation](https://learn.chatgpt.com/docs/app-server).
+
+## Troubleshooting
+
+Run NeoVim's native health check for codex.nvim:
+
+```vim
+:checkhealth codex
+```
+
+It checks the configured NeoVim and Codex CLI versions, local App Server socket, selection-state path, and registered long and short commands. It never starts the daemon or sends a chat message.
 
 ## Contributing
 

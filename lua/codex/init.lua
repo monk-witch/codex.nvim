@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.14"
+local plugin_version = "0.0.15"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -888,6 +888,20 @@ end
 --- @return boolean
 function M.is_busy()
   return progress.is_busy()
+end
+
+--- Internal information used by :checkhealth codex.
+--- @return table
+function M._health_info()
+  return {
+    codex_command = config.codex_command,
+    minimum_codex_version = vim.deepcopy(minimum_codex_version),
+    minimum_nvim_version = vim.deepcopy(minimum_nvim_version),
+    plugin_version = plugin_version,
+    selection_persist = config.selection.persist,
+    selection_state_path = selection_state_path(),
+    socket_path = socket_path(),
+  }
 end
 
 local function register_commands()
