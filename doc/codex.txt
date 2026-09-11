@@ -1,0 +1,227 @@
+*codex.nvim* *codex*                         Local Codex App Server client for NeoVim
+
+==============================================================================
+Contents                                                        *codex-contents*
+
+Introduction              |codex-introduction|
+Requirements              |codex-requirements|
+Installation              |codex-installation|
+Configuration             |codex-configuration|
+Commands                  |codex-commands|
+Lua API                   |codex-api|
+Persistence and privacy   |codex-persistence|
+Statusline                |codex-statusline|
+Troubleshooting           |codex-troubleshooting|
+Compatibility             |codex-compatibility|
+
+==============================================================================
+Introduction                                                  *codex-introduction*
+
+codex.nvim is a keyboard-first, terminal-independent NeoVim client for the
+local Codex App Server. It lets one NeoVim instance select an existing Codex
+chat and send explicit editor text to that chat. It does not embed Codex CLI,
+inspect terminal panes, or require kitty, tmux, Sway, or a particular window
+manager.
+
+The selected chat belongs to the whole NeoVim instance, not an individual
+buffer, tabpage, or split. Chat selection is local; a chat is resumed only
+when text is sent.
+
+==============================================================================
+Requirements                                                    *codex-requirements*
+
+codex.nvim requires NeoVim 0.12.5 or newer, Codex CLI 0.154.0 or newer with
+its matching local App Server, and a Unix-domain socket environment supported
+by NeoVim's libuv transport.
+
+Start or verify the local daemon with: >
+  codex app-server daemon start
+  codex app-server daemon version
+<
+The App Server protocol is coupled to the Codex CLI version that provides it.
+Keep Codex CLI and its local App Server at matching versions.
+
+==============================================================================
+Installation                                                    *codex-installation*
+
+codex.nvim sets itself up with defaults when it is on 'runtimepath'. Call
+require('codex').setup() only to supply configuration. Calling it again is
+safe and will not re-register commands.
+
+Native package (Git clone): >
+  git clone https://github.com/monk-witch/codex.nvim.git \
+    "\${XDG_DATA_HOME:-$HOME/.local/share}/nvim/site/pack/monk-witch/start/codex.nvim"
+<
+NeoVim 0.12's built-in vim.pack: >lua
+  vim.pack.add({
+    { src = "https://github.com/monk-witch/codex.nvim", version = "v0.1.0" },
+  })
+<
+lazy.nvim: >lua
+  {
+    "monk-witch/codex.nvim",
+    version = "v0.1.0",
+    opts = {},
+  },
+<
+Omit the version field to follow the repository default branch. Use a release
+tag for reproducible installs.
+
+==============================================================================
+Configuration                                                  *codex-configuration*
+
+Default setup needs no configuration. This is the complete configuration
+surface and its defaults: >lua
+  require("codex").setup({
+    codex_command = "codex",
+    auto_start = true,
+    connect_timeout_ms = 5000,
+    list_limit = 100,
+    max_websocket_payload_bytes = 16 * 1024 * 1024,
+    progress = {
+      enabled = true,
+      delay_ms = 120,
+      interval_ms = 100,
+    },
+    selection = {
+      persist = true,
+      state_path = nil,
+    },
+    socket_path = nil,
+    statusline = {
+      attach_to_default = true,
+    },
+  })
+<
+                                                        *codex-config-codex-command*
+codex_command is the executable used for Codex version and daemon commands.
+
+                                                        *codex-config-auto-start*
+auto_start starts the local App Server daemon on first operation when needed.
+
+                                                   *codex-config-connect-timeout*
+connect_timeout_ms is the maximum App Server connection wait.
+
+                                                       *codex-config-list-limit*
+list_limit is the maximum number of threads requested from the App Server.
+
+                                           *codex-config-max-websocket-payload*
+max_websocket_payload_bytes is the upper bound for an incoming WebSocket
+message.
+
+                                                        *codex-config-progress*
+progress controls the statusline spinner. delay_ms avoids a flash for fast
+operations; interval_ms controls its animation rate.
+
+                                                       *codex-config-selection*
+selection.persist stores the last selected chat per exact working directory.
+selection.state_path overrides the default state file path.
+
+                                                     *codex-config-socket-path*
+socket_path overrides the local App Server Unix-socket path.
+
+                                                    *codex-config-statusline*
+statusline.attach_to_default adds the spinner only to NeoVim's untouched native
+statusline; it never overwrites a custom 'statusline'.
+
+==============================================================================
+Commands                                                            *codex-commands*
+
+*:CodexList* *:CodexLS* *:CoLS*
+        :CodexList
+        :CodexLS
+        :CoLS
+List non-archived interactive Codex chats whose working directory exactly
+matches NeoVim's current directory. Use Up/Down and Enter, or type a list
+number and Enter. Esc or q cancels. CodexLS is a long alias; CoLS is a short
+alias, created only when the command name is unused.
+
+*:CodexSend* *:CoSe*
+        :[range]CodexSend
+        :[range]CoSe
+Send the inclusive line range from the current buffer to the selected chat.
+Without a range, the current line is sent. Characterwise Visual selection is
+expanded to full containing lines. CoSe is created only when the command name
+is unused.
+
+*:CodexChat* *:CoCh*
+        :CodexChat {text}
+        :CoCh {text}
+Send {text} as direct input to the selected chat. The remainder of the Ex
+command is passed literally. CoCh is created only when the command name is
+unused.
+
+==============================================================================
+Lua API                                                                  *codex-api*
+
+The following functions are the public Lua API: >lua
+  local codex = require("codex")
+
+  codex.setup(options)                 -- returns the module; safe to call again
+  codex.list_chats(callback)           -- callback(err, chats)
+  codex.list()                         -- opens the chat picker
+  codex.send(text, callback)           -- callback(err, turn)
+  codex.send_range(line1, line2)
+  codex.chat(text)
+  codex.selected_chat()                -- thread metadata or nil
+  codex.selected_chat_id()             -- string or nil
+  codex.clear_selection()
+  codex.status()                       -- statusline component or ""
+  codex.is_busy()                      -- boolean
+<
+All input-sending functions require a selected chat. list_chats returns only
+eligible chats for the current working directory. Internal names beginning
+with an underscore are not public API.
+
+==============================================================================
+Persistence and privacy                                  *codex-persistence*
+
+By default, codex.nvim stores selected thread metadata per exact project
+directory under stdpath('state')/codex.nvim/selection.json. It stores neither
+editor input nor chat transcripts. Disable it with: >lua
+  require("codex").setup({ selection = { persist = false } })
+<
+The plugin talks only to the local App Server socket. It does not scrape
+terminal output, manage terminal panes, transmit editor text without an
+explicit :CodexSend or :CodexChat action, or add mouse bindings. Codex CLI and
+its account/network behavior remain independently configured by the user.
+
+==============================================================================
+Statusline                                                    *codex-statusline*
+
+While an operation is pending, codex.status() returns a compact Braille spinner
+and label. It returns an empty string while idle. The default native statusline
+receives it automatically only when it has not been customized.
+
+For a custom native statusline: >vim
+  set statusline+=%{%v:lua.require'codex'.status()%}
+<
+For statusline plugins, call require('codex').status() from their component
+mechanism.
+
+==============================================================================
+Troubleshooting                                          *codex-troubleshooting*
+
+*:checkhealth-codex*
+        :checkhealth codex
+Check NeoVim and Codex CLI versions, local socket availability, selection
+state, and registered commands. The health check never starts the daemon or
+sends input.
+
+If the socket is unavailable, start it with: >
+  codex app-server daemon start
+<
+If the selected chat is absent from the picker, confirm that it is not archived
+and that Codex and NeoVim use exactly the same project directory.
+
+==============================================================================
+Compatibility                                              *codex-compatibility*
+
+The commands, configuration keys, public Lua API, persistence format, and
+minimum versions documented here are the codex.nvim 0.1 compatibility contract.
+Patch releases do not intentionally change or remove them. Additive changes are
+allowed. A breaking change requires a new minor release before 1.0.0 and
+migration notes in the changelog.
+
+vim:tw=78:ts=8:ft=help:norl:
+

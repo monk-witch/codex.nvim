@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.17 — protocol-tested local App Server integration with CI.** The public API is small and may change before `1.0.0`.
+**0.0.18 — protocol-tested local App Server integration with CI and native help.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -132,7 +132,40 @@ require("codex").setup({
 })
 ```
 
-### Install for local development
+## Installation
+
+The plugin loads with its defaults as soon as it is on NeoVim's runtime path. Calling `setup()` is optional and idempotent; use it when you want to change configuration.
+
+### Native package (Git clone)
+
+```sh
+git clone https://github.com/monk-witch/codex.nvim.git \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/nvim/site/pack/monk-witch/start/codex.nvim"
+```
+
+### NeoVim 0.12 `vim.pack`
+
+Add this early in `init.lua`:
+
+```lua
+vim.pack.add({
+  { src = "https://github.com/monk-witch/codex.nvim", version = "v0.1.0" },
+})
+```
+
+### lazy.nvim
+
+```lua
+{
+  "monk-witch/codex.nvim",
+  version = "v0.1.0",
+  opts = {},
+}
+```
+
+Omit `version` to follow the default branch; pin a release tag for reproducible setups.
+
+### Local development
 
 With `lazy.nvim`:
 
@@ -152,6 +185,8 @@ To manage the daemon yourself, disable automatic startup:
 ```lua
 require("codex").setup({ auto_start = false })
 ```
+
+The full options reference and native help are available in NeoVim with `:help codex`.
 
 ## Next steps
 
@@ -181,6 +216,12 @@ Run NeoVim's native health check for codex.nvim:
 ```
 
 It checks the configured NeoVim and Codex CLI versions, local App Server socket, selection-state path, and registered long and short commands. It never starts the daemon or sends a chat message.
+
+## Compatibility and privacy
+
+The commands, configuration keys, public Lua functions, persistence format, and minimum versions documented in [`:help codex`](doc/codex.txt) are the `0.1` compatibility contract. Patch releases will not intentionally break them; breaking changes before `1.0.0` require a new minor release and migration notes.
+
+The plugin connects only to Codex's local App Server socket. It never captures terminal output, controls terminal panes, or sends editor text without an explicit `:CodexSend` or `:CodexChat`. Its per-project selection state stores thread metadata only—not buffer text or chat transcripts. Codex CLI itself remains responsible for account and network behavior.
 
 ## Testing
 
