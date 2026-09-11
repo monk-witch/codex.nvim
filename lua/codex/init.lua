@@ -3,7 +3,7 @@ local M = {}
 local bit = bit or bit32
 local progress = require("codex.progress")
 
-local plugin_version = "0.0.13"
+local plugin_version = "0.0.14"
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
@@ -42,6 +42,7 @@ local state = {
   socket = nil,
   starting = false,
   transport_buffer = "",
+  commands_registered = false,
 }
 
 local function notify(message, level)
@@ -889,17 +890,7 @@ function M.is_busy()
   return progress.is_busy()
 end
 
-function M.setup(options)
-  config = vim.tbl_deep_extend("force", config, options or {})
-  local requirement_err = nvim_requirement_error()
-  if requirement_err then
-    notify(requirement_err, vim.log.levels.ERROR)
-  else
-    progress.setup(config.progress)
-    attach_statusline_to_default()
-    restore_selection()
-  end
-
+local function register_commands()
   vim.api.nvim_create_user_command("CodexList", function()
     M.list()
   end, {
@@ -957,6 +948,28 @@ function M.setup(options)
     desc = "Short alias for :CodexSend",
     range = true,
   })
+end
+
+--- Configure codex.nvim. Safe to call again after automatic default setup.
+--- @param options table|nil
+--- @return table # codex.nvim module
+function M.setup(options)
+  config = vim.tbl_deep_extend("force", config, options or {})
+  local requirement_err = nvim_requirement_error()
+  if requirement_err then
+    notify(requirement_err, vim.log.levels.ERROR)
+  else
+    progress.setup(config.progress)
+    attach_statusline_to_default()
+    restore_selection()
+  end
+
+  if not state.commands_registered then
+    register_commands()
+    state.commands_registered = true
+  end
+
+  return M
 end
 
 return M

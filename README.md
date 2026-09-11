@@ -6,7 +6,7 @@
 
 ## Status
 
-**0.0.13 — direct chat input with guarded short command aliases.** The public API is small and may change before `1.0.0`.
+**0.0.14 — idempotent setup with guarded short command aliases.** The public API is small and may change before `1.0.0`.
 
 ## The idea
 
@@ -144,6 +144,8 @@ With `lazy.nvim`:
   end,
 }
 ```
+
+The plugin works with its defaults as soon as it is on NeoVim's runtime path. Calling `setup()` is optional and idempotent, so it is safe to use only when you want to override defaults.
 
 To manage the daemon yourself, disable automatic startup:
 
