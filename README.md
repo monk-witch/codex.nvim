@@ -6,7 +6,9 @@
 
 ## Status
 
-**0.0.19 — protocol-tested local App Server integration with CI, native help, and contributor guidance.** The public API is small and may change before `1.0.0`.
+**0.1.0 — first supported public release.** The documented commands, configuration, Lua API, persistence format, and minimum versions are stable for the `0.1` series.
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## The idea
 

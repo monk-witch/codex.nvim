@@ -2,8 +2,9 @@ local M = {}
 
 local bit = bit or bit32
 local progress = require("codex.progress")
+local version = require("codex.version")
 
-local plugin_version = "0.0.19"
+local plugin_version = version.current
 local minimum_codex_version = { 0, 154, 0 }
 local minimum_nvim_version = { 0, 12, 5 }
 
